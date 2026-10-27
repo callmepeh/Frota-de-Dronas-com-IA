@@ -1,0 +1,28 @@
+# ---- Build / IDE ----
+target/
+out/
+.idea/
+*.iml
+.vscode/
+dependency-reduced-pom.xml
+
+# ---- Dependências pesadas (abaixo do limite de 100MB do GitHub) ----
+lib/mercuryauto.jar
+
+# ---- Segredos / ambiente ----
+.env
+
+# ---- Temporários gerados por ferramentas de modelagem (JMT/GSPN) ----
+*_Temp*.xml
+ProjectTemp.xml
+
+# ---- Python ----
+__pycache__/
+*.pyc
+
+# ---- Resultados pesados do RL ----
+# Mantém: gráficos (PNG), CSVs resumo e MDs.
+# Ignora: checkpoints de treino, datasets e logs pesados por seed.
+rl/rl_resultados/experimentos/**/treino_seed_*/
+rl/rl_resultados/experimentos/**/modelos/
+*.npz

@@ -1,0 +1,7 @@
+Origem;Entregas;Gerados;Dropados;MMT_med(min);MMT_mediano(min);MMT_P95(min);MMT_max(min);SLA_ok(%);Fila_max
+Java;1357;1357;0;64.1;60.4;130.7;225.2;69.1;108
+Java-adaptativo;1354;1354;0;61.7;57.3;125.9;303.7;73.7;105
+Ambiente(frota=60);1342;1407;0;64.9;59.4;132.1;213.0;67.9;124
+Ambiente(frota=60);1333;1390;0;63.6;59.7;126.8;248.3;69.8;95
+Ambiente(frota=60);1371;1431;0;66.2;57.6;140.2;254.4;66.1;141
+Ambiente(frota=60);1399;1442;0;72.9;65.9;153.4;229.5;61.7;139

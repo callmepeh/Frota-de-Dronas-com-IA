@@ -1,0 +1,19 @@
+# Tipos de texto (normaliza quebras de linha)
+*.java text
+*.py text
+*.md text
+*.csv text
+*.xml text
+*.json text
+*.properties text
+*.yaml text
+*.yml text
+*.ipynb text
+
+# Binários (evita corrupção por conversão de linha)
+*.png binary
+*.jpg binary
+*.zip binary
+*.jar binary
+*.pt binary
+*.npz binary
