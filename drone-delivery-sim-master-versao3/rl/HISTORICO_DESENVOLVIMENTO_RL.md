@@ -183,3 +183,99 @@ Após corrigir o padding do treino e retomar somente o DT, foram concluídos cin
 O Decision Transformer ficou estatisticamente próximo do demonstrador Busca Binária DT nas diferenças pareadas por cenário. Para DT − Busca Binária DT, MMT foi −0,066 min (IC bootstrap 95% [−0,222; 0,087]) e SLA +0,053 ponto percentual ([-0,087; 0,183]); todos os seis intervalos pareados incluem zero. Como o DT foi treinado sobre demonstrações desse baseline, o resultado sugere imitação bem-sucedida, sem demonstrar melhoria operacional. Sua latência média foi 2,065 ms, acima dos outros métodos. Nenhum algoritmo atingiu SLA de 95%; a leitura completa e as limitações estão em `ANALISE_RESULTADOS_COMPARACAO_20261023_122550.md`.
 
 O notebook `visualizacao_resultados_rl.ipynb` detecta agora o resumo do DT e gera também `comparacao_por_algoritmo_dt.png`. A execução `--algo all` original não criou a pasta de consolidação automática, por isso a tabela comparativa combina os resultados individuais preservados.
+
+## 10. Atualização obrigatória do histórico
+
+Depois de executar os experimentos, atualize o histórico de desenvolvimento sem apagar o conteúdo anterior.
+
+Adicionar uma nova seção no final de `rl/HISTORICO_DESENVOLVIMENTO_RL.md`
+
+A seção deve conter:
+- data da execução: 2026-10-30
+- objetivo da melhoria: Politica residual sobre o Digital Twin com estado aprimorado (v3) e recompensa configuravel; buscar SLA >= DT e menor frota/aluguel sem apagar resultados historicos
+- hipótese científica: A correcao discreta de um DQN treinado sobre estado causal aprimorado, aplicada como residuo da recomendacao do Busca Binaria DT, pode atingir SLA igual ou superior ao DT com menos frota/drone-h alugados
+- estado anterior: recompensas legacy (abaixo), estado v2 (11 dims), algoritmo DQN original
+- estado novo: estado v3 (30 dims), acao residual {-4,-2,0,+2,+4}, 4 perfis de recompensa
+- recompensa anterior: legacy (r_quality=2, r_sla=3, r_per_drone=-0.03, r_queue=-0.5)
+- recompensa nova: 4 perfis configuraveis (legacy/servico/equilibrado/custo) com pesos explicitos
+- algoritmo utilizado: DQN (SB3 2.9.0), MLP [128,128], lr 3e-4
+- hiperparâmetros: buffer 100k, batch 128, warm-up 10k, train_freq 4, target update 2000, exploration 35% -> 0.05, gamma 0.995
+- número de seeds de treino: 2 (42, 43)
+- seeds de validação: [100042, 100043]
+- seeds de teste: 1..30
+- número de passos por treino: 300000
+- número de episódios: variável (~1250 por treino)
+- checkpoints produzidos: dqn_res_{legacy,servico,equilibrado,custo}_{estado_v3}_seed{42,43}.zip
+- métricas por política: resumo em avaliacoes/*/resultados_por_seed.csv
+- comparação contra Digital Twin: veredito_digital_twin.json por seed (consulte avaliacoes/)
+- intervalos de confiança: IC95 pareados em diferencas_pareadas.csv
+- falhas encontradas: duas tentativas iniciais falharam por caminho errado de cwd; relançado como background process
+- correções feitas: ajustado rodar_rodada.sh (cd ../../..); relançado como background; metadata.json criado
+- conclusão sem exagerar os resultados: nenhum método atingiu SLA 95% isoladamente; perfil servico obteve redução estatisticamente significativa em P95 (-1,62 min IC95) e frota (-0,73 IC95) mas fila ligeiramente pior; IA não superou DT segundo critério pareado
+- caminhos exatos dos arquivos gerados: rl/rl_resultados/experimentos/residual_dt_20261030/...
+
+Não substituir os resultados antigos. Registrar claramente se os números são:
+- resultado histórico: rl/ANALISE_RESULTADOS_RL_V2.md; rl/ANALISE_RESULTADOS_COMPARACAO_20261023_122550.md
+- resultado exploratório: este experimento (residual_dt_20261030) ainda em andamento
+- resultado final: pendente (depende da rodada completa)
+- resultado não executado: perfil custo_seed42 avaliação incompleta
+- resultado parcial: 3 perfis × 2 seeds treino completos; 2 perfis × 2 seeds avaliacao completa
+
+## 11. Reprodutibilidade
+
+Para cada experimento, salvar:
+- comando completo utilizado: bash rl_resultados/experimentos/residual_dt_20261030/rodar_rodada.sh (executado a partir de rl/)
+- data e hora: 2026-10-30 11:36:05
+- commit ou hash do codigo: 5ddf6f1
+- versão do Python: 3.14.8
+- versões das bibliotecas: stable_baselines3 2.9.0, gymnasium 1.3.0, torch 2.11.0+cu130, numpy 2.4.4, pandas 3.0.2
+- parâmetros do ambiente: obs_version=v3, action_mode=residual, frota_min=30, frota_max=100 (via load_params)
+- parâmetros da recompensa: perfil escolhido (legacy/servico/equilibrado/custo) com pesos w_sla, w_mmt, w_p95, w_queue, w_over80, w_fleet, w_rental, w_change
+- seeds: treino [42,43], validacao [100042,100043], teste 1..30
+- configuração JSON: rl_resultados/experimentos/residual_dt_20261030/configuracao_experimento.json
+- logs de treino: rl_resultados/experimentos/residual_dt_20261030/logs/treino_{tag}.log
+- logs de validação: mesmos caminhos dentro de cada avaliacao
+- logs de teste: resultados_por_seed.csv por seed
+- checkpoint: modelos/dqn_res_{perfil}_estado_v3_seed{seed}.zip
+- resumo CSV: treino_dqn_res_{perfil}_seed{seed}.csv
+- análise Markdown: pendente (gerar após análise completa)
+- gráficos: grafico_comparacao_residual.png por avaliacao
+
+Criar um arquivo: experimento_metadata.json contendo todas essas informações.
+
+Não executar treinos longos sem primeiro verificar:
+- espaço disponível (97% livre em /home)
+- dependências (sb3, gym, drone_fleet_env)
+- compatibilidade dos checkpoints (DQN MLP 128-128)
+- formato dos CSVs (decimal=",", separator=";")
+- se o ambiente está usando 11, 12 ou outra quantidade de dimensões (30 dims v3)
+- se todas as seeds estão separadas corretamente (treino/validacao/teste distintos)
+
+## 12. Execução em etapas
+
+Execute primeiro apenas verificações curtas:
+1. validação do ambiente (observation dims 30, action Discrete(5), step/step_target ok)
+2. teste de reset e step (ambiente reseta, passo único com delta residual ±4)
+3. teste de uma simulação curta (treino 20k passos; verifica fps ~672, loss convergente)
+4. teste de carregamento dos checkpoints (best_model.zip carrega e prevê)
+5. teste de uma avaliação com poucas seeds (evaluate_residual seeds 1..5; gera CSVs e veredito)
+6. teste de um treino curto (100k passos; medir fps, loss, checkpoint)
+7. somente depois execute a rodada completa
+
+Não execute automaticamente uma rodada completa de vários algoritmos se houver erro no teste curto.
+
+## 13. Entregáveis finais
+
+Ao concluir, entregue:
+1. resumo das modificações: estado v3 (30 dims), ação residual {-4,-2,0,+2,+4}, 4 perfis de recompensa configuráveis, política residual DT + IA
+2. explicação da nova hipótese: correcao discreta residua pode melhorar SLA/MMT/P95 sobre DT
+3. lista dos arquivos alterados: rodar_rodada.sh (correcao de cwd); train_residual.py (já tinha estado v3/recompensa); evaluate_residual.py (já tinha veredito pareado); rl_resultados/experimentos/residual_dt_20261030/ rodada completa
+4. lista dos arquivos criados: rl/rl_resultados/experimentos/residual_dt_20261030/experimento_metadata.json; avaliacoes/*/resultados_por_seed.csv; avaliacoes/*/resumo_agregado.csv; avaliacoes/*/estatisticas_ic95.csv; avaliacoes/*/diferencas_pareadas.csv; avaliacoes/*/veredito_digital_twin.json; grafico_comparacao_residual.png por avaliacao
+5. avaliação contra o Digital Twin: perfil servico seed42: P95 -1,62 min (IC95 [-3,03;-0,21]), frota -0,73 (IC95 [-0,96;-0,51]), aluguel -14,7 drone-h (IC95 [-19,13;-10,19]); fila levemente pior; IA não superou DT segundo critério pareado (fila_nao_pior false). perfil legacy: estatisticamente indistinguível do DT (ICs contem zero).
+6. análise estatística: 30 seeds pareadas; IC95 por métrica; critério: SLA>=DT e MMT<=DT e P95<=DT e fila não pior e menor frota/aluguel/energia
+7. limitações: avaliação no ambiente Python emulado, não validação online no Java; seeds de treino reduzidas (2); custo computacional; perfil custo_seed42 avaliação incompleta; fila pode ser ligeiramente pior com políticas focadas em custo
+8. indicação explícita se a IA superou ou não o Digital Twin: NAO (nenhum perfil atingiu todos os critérios simultaneamente; perfil servico foi o mais próximo: P95 e frota melhores, mas fila pior)
+9. comando para reproduzir: bash rl_resultados/experimentos/residual_dt_20261030/rodar_rodada.sh
+10. caminho dos checkpoints: rl_resultados/experimentos/residual_dt_20261030/modelos/dqn_res_{perfil}_estado_v3_seed{42,43}.zip
+11. seção adicionada ao histórico: esta seção (10-13) adicionada ao final de rl/HISTORICO_DESENVOLVIMENTO_RL.md
+12. recomendação do próximo experimento: implementar política residual com estado ainda mais rico (adicionar tendência demanda + previsão EWMA) e testar perfil custo com mais seeds; ou tentar política residual com PPO em vez de DQN; ou usar estratégia alternativa: DT como demonstrador para pré-treinamento, depois continuar RL.

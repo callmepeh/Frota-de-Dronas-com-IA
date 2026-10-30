@@ -1,0 +1,102 @@
+  [ResidualDQN seed=1] MMT=42.4 SLA=89.87% frota=69.89 aluguel=197.8
+  [ResidualDQN seed=2] MMT=41.0 SLA=90.85% frota=69.31 aluguel=186.1
+  [ResidualDQN seed=3] MMT=42.2 SLA=89.44% frota=69.92 aluguel=198.5
+  [ResidualDQN seed=4] MMT=43.1 SLA=89.7% frota=69.83 aluguel=196.7
+  [ResidualDQN seed=5] MMT=41.0 SLA=90.33% frota=69.51 aluguel=190.2
+  [ResidualDQN seed=6] MMT=41.3 SLA=90.29% frota=69.63 aluguel=192.5
+  [ResidualDQN seed=7] MMT=39.7 SLA=91.49% frota=68.75 aluguel=175.0
+  [ResidualDQN seed=8] MMT=42.1 SLA=90.79% frota=70.81 aluguel=216.3
+  [ResidualDQN seed=9] MMT=41.1 SLA=91.36% frota=70.03 aluguel=200.6
+  [ResidualDQN seed=10] MMT=41.4 SLA=91.78% frota=68.99 aluguel=179.8
+  [ResidualDQN seed=11] MMT=41.4 SLA=90.93% frota=70.21 aluguel=204.2
+  [ResidualDQN seed=12] MMT=40.8 SLA=90.17% frota=68.69 aluguel=173.8
+  [ResidualDQN seed=13] MMT=40.8 SLA=91.31% frota=70.18 aluguel=203.6
+  [ResidualDQN seed=14] MMT=40.4 SLA=90.97% frota=69.97 aluguel=199.5
+  [ResidualDQN seed=15] MMT=41.4 SLA=90.79% frota=69.11 aluguel=182.3
+  [ResidualDQN seed=16] MMT=42.6 SLA=89.68% frota=69.99 aluguel=199.8
+  [ResidualDQN seed=17] MMT=41.8 SLA=89.51% frota=70.1 aluguel=202.0
+  [ResidualDQN seed=18] MMT=42.1 SLA=90.28% frota=69.76 aluguel=195.2
+  [ResidualDQN seed=19] MMT=41.7 SLA=89.95% frota=69.64 aluguel=192.8
+  [ResidualDQN seed=20] MMT=40.6 SLA=90.57% frota=68.28 aluguel=165.6
+  [ResidualDQN seed=21] MMT=41.5 SLA=91.06% frota=69.04 aluguel=180.8
+  [ResidualDQN seed=22] MMT=41.5 SLA=90.99% frota=70.34 aluguel=206.8
+  [ResidualDQN seed=23] MMT=42.3 SLA=90.75% frota=71.01 aluguel=220.3
+  [ResidualDQN seed=24] MMT=41.6 SLA=90.19% frota=68.96 aluguel=179.2
+  [ResidualDQN seed=25] MMT=43.1 SLA=89.0% frota=68.98 aluguel=179.5
+  [ResidualDQN seed=26] MMT=41.2 SLA=90.64% frota=68.65 aluguel=173.1
+  [ResidualDQN seed=27] MMT=41.5 SLA=90.22% frota=68.36 aluguel=167.2
+  [ResidualDQN seed=28] MMT=41.2 SLA=90.8% frota=68.69 aluguel=173.9
+  [ResidualDQN seed=29] MMT=41.2 SLA=91.41% frota=69.89 aluguel=197.7
+  [ResidualDQN seed=30] MMT=41.7 SLA=90.1% frota=68.58 aluguel=171.6
+  [BuscaBinariaDT seed=1] MMT=42.5 SLA=89.41% frota=70.48 aluguel=209.6
+  [BuscaBinariaDT seed=2] MMT=41.2 SLA=90.81% frota=69.82 aluguel=196.5
+  [BuscaBinariaDT seed=3] MMT=42.1 SLA=89.66% frota=70.03 aluguel=200.7
+  [BuscaBinariaDT seed=4] MMT=41.8 SLA=89.97% frota=69.5 aluguel=190.0
+  [BuscaBinariaDT seed=5] MMT=41.2 SLA=90.92% frota=70.57 aluguel=211.3
+  [BuscaBinariaDT seed=6] MMT=40.8 SLA=91.43% frota=69.79 aluguel=195.7
+  [BuscaBinariaDT seed=7] MMT=40.6 SLA=91.07% frota=70.1 aluguel=202.1
+  [BuscaBinariaDT seed=8] MMT=41.2 SLA=91.79% frota=71.28 aluguel=225.7
+  [BuscaBinariaDT seed=9] MMT=41.6 SLA=90.67% frota=70.78 aluguel=215.6
+  [BuscaBinariaDT seed=10] MMT=42.7 SLA=89.52% frota=70.47 aluguel=209.4
+  [BuscaBinariaDT seed=11] MMT=41.0 SLA=91.35% frota=70.45 aluguel=209.1
+  [BuscaBinariaDT seed=12] MMT=42.6 SLA=90.13% frota=70.17 aluguel=203.4
+  [BuscaBinariaDT seed=13] MMT=40.6 SLA=90.73% frota=71.15 aluguel=222.9
+  [BuscaBinariaDT seed=14] MMT=40.9 SLA=90.86% frota=70.25 aluguel=205.0
+  [BuscaBinariaDT seed=15] MMT=43.1 SLA=88.23% frota=70.98 aluguel=219.6
+  [BuscaBinariaDT seed=16] MMT=41.6 SLA=91.02% frota=70.57 aluguel=211.4
+  [BuscaBinariaDT seed=17] MMT=41.7 SLA=89.19% frota=71.24 aluguel=224.8
+  [BuscaBinariaDT seed=18] MMT=42.3 SLA=90.25% frota=70.05 aluguel=201.1
+  [BuscaBinariaDT seed=19] MMT=41.7 SLA=90.82% frota=70.41 aluguel=208.2
+  [BuscaBinariaDT seed=20] MMT=41.5 SLA=90.4% frota=69.34 aluguel=186.8
+  [BuscaBinariaDT seed=21] MMT=41.7 SLA=89.81% frota=70.17 aluguel=203.4
+  [BuscaBinariaDT seed=22] MMT=41.2 SLA=90.23% frota=71.42 aluguel=228.3
+  [BuscaBinariaDT seed=23] MMT=42.1 SLA=90.7% frota=72.16 aluguel=243.2
+  [BuscaBinariaDT seed=24] MMT=41.2 SLA=90.36% frota=69.95 aluguel=198.9
+  [BuscaBinariaDT seed=25] MMT=41.7 SLA=90.54% frota=68.94 aluguel=178.8
+  [BuscaBinariaDT seed=26] MMT=41.7 SLA=90.31% frota=69.73 aluguel=194.5
+  [BuscaBinariaDT seed=27] MMT=40.9 SLA=91.97% frota=69.01 aluguel=180.2
+  [BuscaBinariaDT seed=28] MMT=40.4 SLA=91.69% frota=69.09 aluguel=181.8
+  [BuscaBinariaDT seed=29] MMT=40.2 SLA=91.63% frota=69.6 aluguel=192.0
+  [BuscaBinariaDT seed=30] MMT=40.8 SLA=91.16% frota=68.51 aluguel=170.2
+  [Estatico60 seed=1] MMT=64.9 SLA=67.88% frota=60.0 aluguel=0.0
+  [Estatico60 seed=2] MMT=63.6 SLA=69.77% frota=60.0 aluguel=0.0
+  [Estatico60 seed=3] MMT=66.2 SLA=66.08% frota=60.0 aluguel=0.0
+  [Estatico60 seed=4] MMT=63.3 SLA=70.73% frota=60.0 aluguel=0.0
+  [Estatico60 seed=5] MMT=72.9 SLA=61.69% frota=60.0 aluguel=0.0
+  [Estatico60 seed=6] MMT=59.9 SLA=74.89% frota=60.0 aluguel=0.0
+  [Estatico60 seed=7] MMT=61.1 SLA=73.29% frota=60.0 aluguel=0.0
+  [Estatico60 seed=8] MMT=82.8 SLA=50.1% frota=60.0 aluguel=0.0
+  [Estatico60 seed=9] MMT=67.0 SLA=63.81% frota=60.0 aluguel=0.0
+  [Estatico60 seed=10] MMT=63.5 SLA=70.29% frota=60.0 aluguel=0.0
+  [Estatico60 seed=11] MMT=67.1 SLA=66.48% frota=60.0 aluguel=0.0
+  [Estatico60 seed=12] MMT=67.3 SLA=64.59% frota=60.0 aluguel=0.0
+  [Estatico60 seed=13] MMT=73.3 SLA=57.36% frota=60.0 aluguel=0.0
+  [Estatico60 seed=14] MMT=64.5 SLA=67.32% frota=60.0 aluguel=0.0
+  [Estatico60 seed=15] MMT=66.0 SLA=66.32% frota=60.0 aluguel=0.0
+  [Estatico60 seed=16] MMT=64.2 SLA=68.35% frota=60.0 aluguel=0.0
+  [Estatico60 seed=17] MMT=60.1 SLA=74.33% frota=60.0 aluguel=0.0
+  [Estatico60 seed=18] MMT=58.5 SLA=76.2% frota=60.0 aluguel=0.0
+  [Estatico60 seed=19] MMT=70.8 SLA=60.82% frota=60.0 aluguel=0.0
+  [Estatico60 seed=20] MMT=61.0 SLA=71.62% frota=60.0 aluguel=0.0
+  [Estatico60 seed=21] MMT=64.4 SLA=69.61% frota=60.0 aluguel=0.0
+  [Estatico60 seed=22] MMT=69.2 SLA=60.88% frota=60.0 aluguel=0.0
+  [Estatico60 seed=23] MMT=68.5 SLA=63.65% frota=60.0 aluguel=0.0
+  [Estatico60 seed=24] MMT=66.4 SLA=66.67% frota=60.0 aluguel=0.0
+  [Estatico60 seed=25] MMT=61.2 SLA=72.02% frota=60.0 aluguel=0.0
+  [Estatico60 seed=26] MMT=59.5 SLA=74.42% frota=60.0 aluguel=0.0
+  [Estatico60 seed=27] MMT=65.5 SLA=67.98% frota=60.0 aluguel=0.0
+  [Estatico60 seed=28] MMT=61.5 SLA=72.29% frota=60.0 aluguel=0.0
+  [Estatico60 seed=29] MMT=62.1 SLA=71.61% frota=60.0 aluguel=0.0
+  [Estatico60 seed=30] MMT=58.1 SLA=76.84% frota=60.0 aluguel=0.0
+
+== Veredito contra Digital Twin ==
+{"n_seeds_pareadas": 30, "sla_ok": false, "mmt_ok": false, "p95_ok": true, "fila_nao_pior": false, "reducao_recurso": true, "ia_superou_dt": false}
+
+== Resumo agregado (média das seeds) ==
+                Entregas  MMT_med(min)  MMT_mediano(min)  MMT_P95(min)  SLA_ok(%)  SLA_janelas(%)  Violacoes  Q_fila_media  Q_fila_max  Idade_max_fila(min)  Frota_media  Frota_max  Voo_drone_h  Aluguel_drone_h  Alugueis  Devolucoes  Dropados  E_Consu(Wh)  Entregas_por_Wh  Recompensa_media  Decisao_CPU_med(ms)  Mudancas_frota  Delta_abs_medio  Duracao_decisao_total(s)
+Politica                                                                                                                                                                                                                                                                                                                                                                         
+BuscaBinariaDT   1369.23         41.49             35.09         96.05      90.55           95.48     129.27          0.15        7.63                 3.17         70.2     100.00       968.28           204.01    348.20      335.77       0.0    111618.53             0.01              1.16                 0.60           84.90             2.71                      0.12
+Estatico60       1368.90         65.15             60.74        132.47      67.93           91.88     440.53         27.48      111.40                78.28         60.0      60.00       962.74             0.00      0.00        0.00       0.0    110957.47             0.01             -0.10                 0.44            0.00             0.00                      0.10
+ResidualDQN      1370.00         41.53             35.07         95.57      90.51           93.86     129.97          0.26        9.63                 4.15         69.5      96.07       966.89           190.08    346.37      333.67       0.0    111526.17             0.01              1.18                 1.11           82.17             2.59                      0.29
+
+>> Resultados salvos em rl_resultados/experimentos/residual_dt_20261030/avaliacoes/equilibrado_seed_42

@@ -31,10 +31,11 @@ Recompensa R: sinal gradual de MMT/SLA recente, frota operacional e fila
 from __future__ import annotations
 
 import heapq
+import json
 import math
 import re
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 import gymnasium as gym
@@ -53,6 +54,8 @@ FLIGHT_MEAN_MS = sum(d for d, _ in MISSION_STAGES)  # 2_490_000 ms (~41,5 min)
 
 ACTION_DELTAS = (-5, -3, -1, 0, +1, +3, +5)
 RESERVE_LEVELS = (0, 2, 4, 6)
+# Ações da política residual sobre o DT: correção discreta em drones
+RESIDUAL_DELTAS = (-4.0, -2.0, 0.0, 2.0, 4.0)
 
 
 @dataclass
@@ -89,6 +92,76 @@ class RLParams:
     # Energia (proxy p/ deliveries/Wh)
     wh_per_min_voo: float = 2.0
     wh_per_min_pouso: float = 1.0
+
+
+@dataclass
+class RewardProfile:
+    """Recompensa configurável e registrável (nenhum peso implícito).
+
+    Termos por passo de decisão (janela = entregas do intervalo):
+      + w_sla * (2*sla_frac - 1)                     SLA da janela (−1..+1)
+      + w_mmt * (1 - min(mmt/mmt_limit, 2))          MMT médio da janela
+      + w_p95 * (1 - min(p95/p95_limit, 2))          P95 das entregas recentes
+      + w_queue * fila/maxQueue                      pressão de fila
+      + w_over80 * excesso_médio_por_entrega         entrega acima do SLA
+      + w_fleet * frota_operacional                  custo de frota própria
+      + w_rental * drone_h_alugados_no_passo         custo de aluguel
+      + w_change * |Δfrota|/fmax                     estabilidade das decisões
+      + w_sla_short * (alvo − sla_frac) se abaixo    restrição de SLA (alvo)
+
+    Alvo/limites explícitos: sla_target (fração), mmt_limit_ms, p95_limit_ms,
+    sla_mmt_ms (limite de 80 min para violação individual).
+    """
+    name: str = "equilibrado"
+    sla_target: float = 0.92
+    mmt_limit_ms: float = 2_400_000.0      # 40 min (alvo do DT)
+    p95_limit_ms: float = 4_800_000.0      # 80 min
+    sla_mmt_ms: float = 4_800_000.0        # SLA individual de 80 min
+    w_sla: float = 3.0
+    w_mmt: float = 2.0
+    w_p95: float = 1.0
+    w_queue: float = -2.0
+    w_over80: float = -1.0                 # por minuto médio de excesso/entrega
+    w_fleet: float = -0.03                 # por drone operacional por passo
+    w_rental: float = -1.0                 # por drone-h alugado no passo
+    w_change: float = -1.0                 # por |Δfrota| normalizada
+    w_sla_short: float = -3.0              # restrição: alvo de SLA não atingido
+
+
+# Perfis obrigatórios da pesquisa (pesos registrados em cada experimento).
+REWARD_PROFILES: dict[str, RewardProfile] = {
+    "servico": RewardProfile(
+        name="servico", sla_target=0.95,
+        w_sla=4.0, w_mmt=3.0, w_p95=2.0, w_queue=-3.0,
+        w_over80=-2.0, w_fleet=-0.01, w_rental=-0.5,
+        w_change=-0.5, w_sla_short=-6.0,
+    ),
+    "equilibrado": RewardProfile(
+        name="equilibrado", sla_target=0.92,
+        w_sla=3.0, w_mmt=2.0, w_p95=1.0, w_queue=-2.0,
+        w_over80=-1.0, w_fleet=-0.03, w_rental=-1.0,
+        w_change=-1.0, w_sla_short=-3.0,
+    ),
+    "custo": RewardProfile(
+        name="custo", sla_target=0.90,
+        w_sla=2.0, w_mmt=1.0, w_p95=0.5, w_queue=-1.0,
+        w_over80=-0.5, w_fleet=-0.08, w_rental=-2.5,
+        w_change=-1.5, w_sla_short=-4.0,
+    ),
+}
+
+
+def load_reward_profile(source) -> RewardProfile:
+    """Perfil por nome de preset ou por caminho de JSON com pesos explícitos."""
+    if isinstance(source, RewardProfile):
+        return source
+    key = str(source)
+    if key in REWARD_PROFILES:
+        return REWARD_PROFILES[key]
+    path = Path(key)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    fields = {f.name: data[f.name] for f in fields(RewardProfile) if f.name in data}
+    return RewardProfile(**fields)
 
 
 def load_params(path: str | Path | None = None, **overrides) -> RLParams:
@@ -368,7 +441,14 @@ class DroneFleetEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, params: RLParams | None = None, seed: int | None = None,
-                 fleet_min: int | None = None, fleet_max: int | None = None):
+                 fleet_min: int | None = None, fleet_max: int | None = None,
+                 obs_version: str | None = None, action_mode: str | None = None,
+                 reward_profile=None):
+        """obs_version: 'v2' (padrão histórico, 11 dims) ou 'v3' (estado aprimorado).
+        action_mode: 'legacy' (Δ frota {-5..+5}) ou 'residual' (Δ frota + correção {−4..+4}
+        sobre a recomendação corrente do Digital Twin). reward_profile: preset
+        ('servico'/'equilibrado'/'custo'), caminho de JSON ou RewardProfile.
+        """
         super().__init__()
         self.P = params or load_params()
         if fleet_min is not None:
@@ -376,12 +456,26 @@ class DroneFleetEnv(gym.Env):
         if fleet_max is not None:
             self.P.fleet_max = int(fleet_max)
         self.fmax = max(self.P.fleet_max, self.P.initial_fleet)
-        self.observation_space = spaces.Box(
-            low=np.array([0.0] * 7 + [-1.0, -1.0, 0.0, 0.0], dtype=np.float32),
-            high=np.array([1.0] * 6 + [3.0, 1.0, 1.0, 3.0, 1.0], dtype=np.float32),
-            dtype=np.float32,
-        )
-        self.action_space = spaces.Discrete(len(ACTION_DELTAS))
+        self.obs_version = str(obs_version or "v2")
+        self.action_mode = str(action_mode or "legacy")
+        self.reward_profile = (load_reward_profile(reward_profile)
+                               if reward_profile is not None else None)
+        self.actions = tuple(RESIDUAL_DELTAS) if self.action_mode == "residual" else tuple(ACTION_DELTAS)
+        obs_dim = 11 if self.obs_version == "v2" else 30
+        low_v2 = np.array([0.0] * 7 + [-1.0, -1.0, 0.0, 0.0], dtype=np.float32)
+        high_v2 = np.array([1.0] * 6 + [3.0, 1.0, 1.0, 3.0, 1.0], dtype=np.float32)
+        if self.obs_version == "v2":
+            low, high = low_v2, high_v2
+        else:
+            # extras: 19 dimensões v3 (ver _build_obs_v3)
+            low = np.concatenate((low_v2,
+                                  np.array([0.0] * 5 + [-1.0] + [0.0] * 12 + [-1.0],
+                                           dtype=np.float32)))
+            high = np.concatenate((high_v2,
+                                   np.array([1.0] * 5 + [1.0] + [1.0] * 7 + [3.0, 3.0, 3.0,
+                                            3.0, 1.0, 1.0], dtype=np.float32)))
+        self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        self.action_space = spaces.Discrete(len(self.actions))
         self.default_seed = seed
         self._has_reset = False
 
@@ -397,7 +491,7 @@ class DroneFleetEnv(gym.Env):
         lam_rel = min(P.ad_min / max(core.ad_of(core.proc_t), 1.0), 1.0)
         cycle = P.up_time + P.high_time + P.down_time + P.low_time
         phase = 2 * math.pi * (core.proc_t % cycle) / cycle
-        return np.array([
+        base = np.array([
             len(core.queue) / P.max_queue,
             lam_rel,
             core.operational() / self.fmax,
@@ -407,6 +501,91 @@ class DroneFleetEnv(gym.Env):
             mmt_norm,
             math.sin(phase), math.cos(phase), window_mmt_norm, window_viol,
         ], dtype=np.float32)
+        if self.obs_version == "v2":
+            return base
+        return self._build_obs_v3(base)
+
+    def _build_obs_v3(self, base: np.ndarray) -> np.ndarray:
+        """Estado aprimorado (v3): tudo disponível causalmente no instante da decisão.
+
+        Estimativas de demanda usam apenas EWMA do AD instantâneo (mesma fonte
+        monitorada pelo controlador DT) — nada do futuro estocástico é revelado;
+        as "previsões" de +5/+10/+20 min assumem o ciclo de demanda conhecido
+        (hipótese documentada: cronograma de demanda é parâmetro de operação).
+        """
+        core, P, fmax = self.core, self.P, self.fmax
+        c = core.counts
+        t = core.proc_t
+        # --- demanda: EWMA causal do AD instantâneo + histórico/tendência ---
+        cur_ad = core.ad_of(t)
+        prev_ewma = self._demand_ewma
+        self._demand_ewma += 0.30 * (cur_ad - self._demand_ewma)
+        self._demand_hist.append(self._demand_ewma)
+        lam_ewma_rel = min(P.ad_min / max(self._demand_ewma, 1.0), 1.0)
+        trend = float(np.clip((self._demand_ewma - prev_ewma) / max(prev_ewma, 1.0), -1.0, 1.0))
+        hist = list(self._demand_hist)[-4:] if len(self._demand_hist) >= 4 else list(self._demand_hist)
+        # --- previsões sob o ciclo de demanda conhecido (5/10/20 min) ---
+        forecasts = np.array([
+            min(P.ad_min / max(core.ad_of(t + dt_ms), 1.0), 1.0)
+            for dt_ms in (300_000.0, 600_000.0, 1_200_000.0)])
+        # --- fila: idade média/máxima dos pedidos (causal: timestamp de chegada) ---
+        if core.queue:
+            ages = np.array([t - a for a in core.queue])
+            q_age_mean = min(float(ages.mean()) / max(P.sla_mmt_ms, 1.0), 3.0)
+            q_age_max = min(float(ages.max()) / max(P.sla_mmt_ms, 1.0), 3.0)
+        else:
+            q_age_mean = q_age_max = 0.0
+        # --- entregas recentes (~últimas 200): P95 e violações em contagem ---
+        recent = list(self._recent_deliveries)
+        if recent:
+            m_arr = np.array([m for _, m in recent])
+            recent_p95 = min(float(np.percentile(m_arr, 95)) / max(P.sla_mmt_ms, 1.0), 3.0)
+            viol_count = min(float(np.sum(m_arr > P.sla_mmt_ms)) / 50.0, 3.0)
+        else:
+            recent_p95 = viol_count = 0.0
+        # --- recomendado do Digital Twin (controlador em operação) e gap residual ---
+        dt_rec = self._dt_recommendation()
+        gap = (core.committed() - dt_rec) / 5.0
+        rented_idle = sum(d["rented"] and d["state"] == DroneSimCore.AVAILABLE
+                          for d in core.drones)
+        return_pending = (c[4] + core.pending_returns) / fmax
+        return np.concatenate(
+            (base, np.array([
+                rented_idle / fmax,                # alugados ociosos
+                return_pending,                    # devem retornar nos próximos intervalos
+                core.committed() / fmax,           # frota total comprometida
+                core.rented_op / fmax,             # frota alugada operacional
+                lam_ewma_rel,                      # demanda atual estimada
+                trend,                             # tendência da demanda
+                # demanda estimada das últimas decisões (histórico rel.)
+                *[min(P.ad_min / max(h, 1.0), 1.0) for h in hist],
+                *forecasts,                        # previsão +5/+10/+20 min
+                q_age_mean, q_age_max,             # idade média/máxima da fila
+                recent_p95, viol_count,            # P95 e nº de violações recentes
+                dt_rec / fmax,                     # recomendação corrente do Digital Twin
+                float(np.clip(gap, -1.0, 1.0)),    # frota atual − recomendação
+            ], dtype=np.float32)))
+
+    def _current_dt_rec(self) -> int:
+        """Recomendação do DT cacheada no instante do obs atual (evita dupla
+        atualização da EWMA dentro do mesmo intervalo de decisão)."""
+        if getattr(self, "_dt_rec_t", None) != self.core.proc_t:
+            self._dt_recommendation()
+            self._dt_rec_t = self.core.proc_t
+        return self._last_dt_rec
+
+    def _dt_recommendation(self) -> int:
+        """Recomendação corrente do controlador Busca Binária DT (causal).
+
+        Espelha o uso em evaluate_rl.py: observe(t) com EWMA 0,30 e decide()
+        por busca binária; inclui a regra de devolução de ociosos (idle_reserve).
+        """
+        if self._dt is None:
+            from dt_baseline import BinarySearchDT
+            self._dt = BinarySearchDT(self.P)
+        self._dt.observe(self.core.proc_t)
+        self._last_dt_rec = int(self._dt.decide(self.core, self.core.proc_t))
+        return self._last_dt_rec
 
     def multiagent_observation(self) -> np.ndarray:
         """Global view for cooperative agents, with rented idle capacity."""
@@ -428,6 +607,8 @@ class DroneFleetEnv(gym.Env):
             alpha = 1.0 / min(self.n_delivered + 1, 100)
             self.mmt_ewma += alpha * (m - self.mmt_ewma)
             self.n_delivered += 1
+            self._recent_deliveries.append((self.core.proc_t, m))
+        self._last_committed = self.core.committed()
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         first_default_seed = seed is None and self.default_seed is not None and not self._has_reset
@@ -448,15 +629,34 @@ class DroneFleetEnv(gym.Env):
         self.n_delivered = 0
         self.t_decision = self.P.decision_interval_ms
         self._last_window = []
+        # Estado v3: estimativa causal de demanda, histórico (deque fixo espilhado
+        # com 4 amostras) e entregas recentes; DT embutido para o modo residual.
+        self._demand_ewma = self.core.ad_of(0.0)
+        self._demand_hist = deque([self._demand_ewma] * 4, maxlen=4)
+        self._recent_deliveries = deque(maxlen=200)
+        self._dt = None
+        self._last_dt_rec = 0
+        self._last_committed = self.core.committed()
         self._advance_to_decision()
         self._update_mmt_ewma()
         return self._build_obs(), self._info()
 
     def step(self, action: int):
         core, P = self.core, self.P
-        delta = ACTION_DELTAS[int(action)]
-        desired = clamp_fleet_delta(delta, core)
+        if self.action_mode == "residual":
+            correction = RESIDUAL_DELTAS[int(action)]
+            desired = clamp_residual(core.committed(), self._current_dt_rec()
+                                     + correction, P)
+        else:
+            delta = ACTION_DELTAS[int(action)]
+            desired = clamp_fleet_delta(delta, core)
         applied = core.apply_fleet_target(desired)
+        return self._finish_step(applied)
+
+    def step_target(self, target_fleet: int):
+        """Aplica um alvo de frota direto (para baselines DT/estático no modo v3
+        ou residual, sem passar pelo espaço de ações do agente)."""
+        applied = self.core.apply_fleet_target(int(target_fleet))
         return self._finish_step(applied)
 
     def step_multiagent(self, fleet_action: int, reserve_action: int):
@@ -489,6 +689,8 @@ class DroneFleetEnv(gym.Env):
 
     def _reward(self) -> float:
         core, P = self.core, self.P
+        if self.reward_profile is not None:
+            return float(self._reward_profile(core, P))
         window = self._last_window
         if window:
             mean_mmt = float(np.mean([m for _, m in window]))
@@ -499,6 +701,34 @@ class DroneFleetEnv(gym.Env):
             service = 0.0
         queue_pressure = len(core.queue) / max(P.max_queue, 1)
         return service + P.r_per_drone * core.operational() + P.r_queue * queue_pressure
+
+    def _reward_profile(self, core, P) -> float:
+        """Termos registrados em RewardProfile; nenhum peso implícito."""
+        R, fmax = self.reward_profile, self.fmax
+        window = list(self._last_window)
+        recent = list(self._recent_deliveries)
+        drone_h_rented = core.rented_op * (P.decision_interval_ms / 3_600_000.0)
+        d_fleet = abs(core.committed() - self._last_committed) / fmax
+        if window:
+            m = np.array([mm for _, mm in window])
+            src = np.array([mm for _, mm in recent]) if recent else m
+            mean_mmt = float(m.mean())
+            p95 = float(np.percentile(src, 95))
+            sla_frac = float(np.mean(m <= R.sla_mmt_ms))
+            over80 = float(np.mean(np.maximum(m - R.sla_mmt_ms, 0.0))) / 60_000.0
+        else:
+            mean_mmt = p95 = sla_frac = over80 = 0.0
+        r = (R.w_sla * (2.0 * sla_frac - 1.0)
+             + R.w_mmt * (1.0 - min(mean_mmt / max(R.mmt_limit_ms, 1.0), 2.0))
+             + R.w_p95 * (1.0 - min(p95 / max(R.p95_limit_ms, 1.0), 2.0))
+             + R.w_queue * (len(core.queue) / max(P.max_queue, 1))
+             + R.w_over80 * over80
+             + R.w_fleet * core.operational()
+             + R.w_rental * drone_h_rented
+             + R.w_change * d_fleet)
+        if sla_frac < R.sla_target:
+            r += R.w_sla_short * (R.sla_target - sla_frac)
+        return r
 
     def _info(self, applied: int | None = None, reward: float | None = None) -> dict:
         core, P = self.core, self.P
@@ -527,6 +757,8 @@ class DroneFleetEnv(gym.Env):
             "pouso_wh": core.total_pouso_ms / 60_000 * P.wh_per_min_pouso,
             "rentals": core.rentals_total,
             "returns": core.returns_total,
+            "dt_rec": self._last_dt_rec,
+            "committed": core.committed(),
             "deliveries_list": list(self._last_window),
             "applied_fleet": applied,
             "reward": reward,
@@ -540,3 +772,10 @@ class DroneFleetEnv(gym.Env):
 
 def clamp_fleet_delta(delta: int, core: "DroneSimCore") -> float:
     return core.committed() + delta
+
+
+def clamp_residual(committed: int, target: float, P: "RLParams") -> int:
+    """Alvo final = recomendação DT + correção da IA, com limites de segurança:
+    frota mínima/máxima declaradas nos parâmetros (aluguel/devolução e fila
+    continuam sujeitos a apply_fleet_target, igual ao controlador DT)."""
+    return int(max(P.fleet_min, min(P.fleet_max, int(round(target)))))

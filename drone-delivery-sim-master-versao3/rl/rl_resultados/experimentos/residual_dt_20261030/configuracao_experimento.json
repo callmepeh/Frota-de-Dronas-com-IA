@@ -1,0 +1,40 @@
+{
+  "experimento": "residual_dt_20261030",
+  "data_inicio": "2026-10-30",
+  "objetivo": "Politica residual sobre o Digital Twin com estado aprimorado (v3) e recompensa configuravel; buscar SLA >= DT e menor frota/aluguel sem apagar resultados historicos",
+  "hipotese": "A correcao discreta de um DQN treinado sobre estado causal aprimorado, aplicada como residuo da recomendacao do Busca Binaria DT, pode atingir SLA igual ou superior ao DT com menos frota/drone-h alugados",
+  "estrategia": "residual (item 4 do protocolo): frota_final = recomendacao_DT + correcao_IA in {-4,-2,0,+2,+4}, clamped em [30,100]",
+  "estado": {
+    "versao": "v3",
+    "dimensoes": 30,
+    "base_v2": 11,
+    "extras": ["alugados_ociosos", "deverao_retornar (transito_devolucao+pendentes)", "frota_comprometida", "alugados_operacionais", "demanda_ewma", "tendencia_demanda", "demanda_historico_4_decisoes", "previsao_demanda_plus5min", "previsao_demanda_plus10min", "previsao_demanda_plus20min", "idade_media_fila", "idade_max_fila", "p95_mmt_recentes", "contagem_violacoes_recentes", "recomendacao_DT", "frota_atual_menos_DT"],
+    "temporalidade": "empilhamento explícito fixo: deque de 4 decisões (demanda) + entregas recentes (deque 200) — escolhida por ser a alternativa mais simples reproduzível",
+    "causalidade": "nenhuma variável usa informação futura estocástica; previsões de demanda assumem o ciclo de demanda do config.properties conhecido (mesma suposição do monitor de AD do DT Java)",
+    "escolha_alternativa_temporal": "janela temporária explícita (empilhamento fixo), em vez de LSTM/GRU ou Transformer temporal, para manter comparabilidade com os modelos MLP de 11 dims e custo computacional baixo"
+  },
+  "acao": {"modo": "residual", "deltas": [-4, -2, 0, 2, 4], "frota_min": 30, "frota_max": 100},
+  "recompensa": {
+    "formula": "w_sla*(2*sla_frac-1) + w_mmt*(1-min(mmt/mmt_limit,2)) + w_p95*(1-min(p95/p95_limit,2)) + w_queue*fila/maxQueue + w_over80*excesso_medio_min_acima_80 + w_fleet*frota_op + w_rental*drone_h_alugados_passo + w_change*|Δfrota|/fmax + w_sla_short*(alvo-sla_frac) se abaixo",
+    "alvo_sla": "sla_target por perfil",
+    "limite_mmt": "mmt_limit_ms = 2400000 (40 min)",
+    "limite_p95": "p95_limit_ms = 4800000 (80 min)",
+    "penalidade_acima_80_min": "w_over80 por minuto de excesso",
+    "penalidade_aumento_p95": "termo w_p95 com p95_limit",
+    "custo_drones": "w_fleet por drone operacional por passo",
+    "custo_drone_h_alugado": "w_rental por drone-h alugado no passo",
+    "penalidade_alteracoes_frota": "w_change por |Δfrota| normalizada",
+    "perfis": {
+      "legacy": {"origem": "recompensa original (r_quality=2, r_sla=3, r_per_drone=-0.03, r_queue=-0.5) preservada para ablação"},
+      "servico": {"sla_target": 0.95, "w_sla": 4.0, "w_mmt": 3.0, "w_p95": 2.0, "w_queue": -3.0, "w_over80": -2.0, "w_fleet": -0.01, "w_rental": -0.5, "w_change": -0.5, "w_sla_short": -6.0},
+      "equilibrado": {"sla_target": 0.92, "w_sla": 3.0, "w_mmt": 2.0, "w_p95": 1.0, "w_queue": -2.0, "w_over80": -1.0, "w_fleet": -0.03, "w_rental": -1.0, "w_change": -1.0, "w_sla_short": -3.0},
+      "custo": {"sla_target": 0.90, "w_sla": 2.0, "w_mmt": 1.0, "w_p95": 0.5, "w_queue": -1.0, "w_over80": -0.5, "w_fleet": -0.08, "w_rental": -2.5, "w_change": -1.5, "w_sla_short": -4.0}
+    }
+  },
+  "algoritmo": "DQN (SB3 2.9.0), hiperparâmetros idênticos ao train_rl.py: MLP [128,128], lr 3e-4, buffer 100k, batch 128, warm-up 10k, train_freq 4, target update 2000, exploration 35% -> 0.05, gamma 0.995",
+  "seeds": {"treino": [42, 43], "validacao": [100042, 100043], "teste": "1..30 (mesmas seeds do protocolo histórico)"},
+  "treino": {"timesteps": 300000, "eval_freq": 10000, "eval_episodes": 3, "selecao_checkpoint": "somente validação (EvalCallback)"},
+  "avaliacao": {"seeds_teste": "1-30", "politicas": ["ResidualDQN", "BuscaBinariaDT", "Estatico60"], "aplicacao_baseline": "alvo exato via step_target (protocolo 20261030); no protocolo 20261023 o DT era arredondado ao delta discreto"},
+  "preservacao": "nenhum arquivo histórico é sobrescrito; toda saída em rl_resultados/experimentos/residual_dt_20261030/",
+  "limitacoes_registradas": ["seeds de treino reduzidas (2) por orçamento computacional desta rodada", "avaliação no ambiente Python emulado, não validação online no Java", "DT baseline aplica alvo exato (sem arredondamento discreto) — pequena diferença metódológica frente a 20261023 documentada no histórico"]
+}

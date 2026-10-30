@@ -1,0 +1,42 @@
+{
+  "experimento": "residual_dt_20261030",
+  "data_execucao_rodada_completa": "2026-10-30 11:36:05 (horário local da máquina)",
+  "comando_utilizado": "bash rl_resultados/experimentos/residual_dt_20261030/rodar_rodada.sh  (executado a partir de rl/)",
+  "treino_unitario": "python3 train_residual.py --profile {legacy|servico|equilibrado|custo} --timesteps 300000 --seed {42|43} --out rl_resultados/experimentos/residual_dt_20261030/modelos/dqn_res_{perfil}_estado_v3_seed{seed}.zip --results-dir rl_resultados/experimentos/residual_dt_20261030/treino_{perfil}_seed_{seed}/treino",
+  "avaliacao_unitaria": "python3 evaluate_residual.py --model {modelo.zip} --seeds 1..30 --out-dir rl_resultados/experimentos/residual_dt_20261030/avaliacoes/{perfil}_seed_{seed}",
+  "commit_codigo": "5ddf6f1",
+  "versao_python": "3.14.8",
+  "versoes_bibliotecas": {
+    "stable_baselines3": "2.9.0",
+    "gymnasium": "1.3.0",
+    "torch": "2.11.0+cu130",
+    "numpy": "2.4.4",
+    "pandas": "3.0.2"
+  },
+  "seeds": {
+    "treino": [42, 43],
+    "validacao": [100042, 100043],
+    "teste": [1, 2, "...", 30]
+  },
+  "timesteps_por_treino": 300000,
+  "episodios_por_treino": "variavel (episodio ~240 passos; ~1250 episodios por treino)",
+  "checkpoints_produzidos": "rl_resultados/experimentos/residual_dt_20261030/modelos/dqn_res_{perfil}_estado_v3_seed{42,43}.zip (melhor de tal modelo selecionado so pela validacao)",
+  "status": "em_andamento",
+  "incidentes_registro": [
+    {
+      "quando": "2026-10-30 ~11:23",
+      "ocorrencia": "duas tentativas de rodada falharam: rodar_rodada.sh fazia cd para rl/rl_resultados em vez de rl/ (cd $(dirname $0)/../.. com um nivel a menos); correcao aplicada para ../../..",
+      "acao": "logs das tentativas falhas preservados em logs/rodada_tentativas_falhas_cwd_errado.log e logs/treino_legacy_seed42_falha_cwd_errado.log",      "resultado": "nenhum passo válido foi perdido: os treinos anteriores à correção falharam antes de gravar qualquer resultado"
+    },
+    {
+      "quando": "2026-10-30 ~11:33",
+      "ocorrencia": "primeiro relançamento morreu ao encerrar a sessão shell (nohup & não sobrevive ao cleanup do host); rodada reiniciada como processo em background duradouro",
+      "acao": "resume: rodar_rodada.sh avança pulando treinos já concluídos (verifica a existência do modelo final em modelos/)",
+      "resultado": "ok"}
+  ],
+  "referencias_protocolo": [
+    "residual (item 4): frota_final = recomendacao_DT + correcao_IA in {-4,-2,0,+2,+4}",
+    "avaliacao pareada (item 7): veredito_digital_twin.json em cada avaliacoes/<tag>/",
+    "ambiente Python emulado; NAO houve validacao online no simulador Java nesta rodada"
+  ]
+}
